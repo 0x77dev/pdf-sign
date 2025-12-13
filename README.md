@@ -1,6 +1,23 @@
 # pdf-sign
 
-A minimalist, agent-centric PDF signing utility written in Rust utilizing. It generates Adobe-compliant detached PGP signatures appended to PDF documents while strictly delegating all cryptographic operations to the GPG Agent.
+A lightweight, modern PDF signing utility written in Rust. It creates an Adobe-compatible detached OpenPGP (GPG) signature and appends it to the PDF, making it easy to sign and verify documents without dragging in heavyweight PDF signing stacks.
+
+It’s designed to be a practical alternative to “traditional” PDF signing workflows: minimal setup, scriptable CLI, and it delegates cryptography to your existing `gpg-agent` (including smartcards/YubiKey).
+
+The signed output stays minimal: the original PDF content is preserved and the signature is appended, keeping the file compliant so it still opens normally in standard PDF viewers.
+
+## Features
+
+* **Simple CLI**: `sign` and `verify` commands that compose well in pipelines.
+* **Works with your existing GPG setup**: Uses `gpg-agent` and your keyring (respects `GNUPGHOME`).
+* **Hardware-friendly**: Private keys can stay on a smartcard/YubiKey.
+* **Lightweight distribution**: Single-file script you can run directly (see Quickstart).
+
+## Security model
+
+* **No private keys in the tool**: All signing operations are performed by `gpg-agent`.
+* **Reduced key exposure**: Private keys never need to be loaded into this process.
+* **Explicit verification**: Verifies the appended signature against a provided certificate.
 
 ## Quickstart
 
@@ -25,12 +42,12 @@ chmod +x pdf-sign.rs
 
 ## Methodology
 
-This tool adheres to a "No-Key-In-Memory" architecture. It acts as a bridge between the PDF file structure and the GPG Agent socket.
+`pdf-sign` focuses on doing the minimum work needed to connect PDF bytes to `gpg-agent` safely:
 
 1. **PDF Parsing**: Locates the `%%EOF` marker to identify the exact byte range for signing.
-2. **Agent Delegation**: Connects directly to the `gpg-agent` Unix socket using the Assuan protocol via `sequoia-gpg-agent`.
-3. **Hardware Isolation**: Private keys never leave the secure element (YubiKey/Smartcard) or the agent's protected memory. The tool only handles the public certificate stub.
-4. **Standardization**: Produces an ASCII-armored detached signature packet and appends it to the PDF, ensuring compatibility with standard verification tools.
+2. **Agent Delegation**: Talks to `gpg-agent` (Assuan protocol via `sequoia-gpg-agent`) to perform signing.
+3. **Key Isolation**: Your private key stays in `gpg-agent` or on hardware; the tool only handles public material.
+4. **Compatibility**: Produces an ASCII-armored detached signature packet and appends it to the PDF for verification.
 
 ## Requirements
 
