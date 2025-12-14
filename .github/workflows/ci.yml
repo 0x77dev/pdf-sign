@@ -52,7 +52,7 @@ jobs:
           cp -L result/bin/pdf-sign "dist/pdf-sign-${{ runner.os }}-$(uname -m)"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pdf-sign-${{ matrix.name }}
           path: dist/*
