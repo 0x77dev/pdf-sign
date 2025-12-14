@@ -32,7 +32,7 @@ jobs:
             accept-flake-config = true
 
       - name: Cachix
-        uses: cachix/cachix-action@v15
+        uses: cachix/cachix-action@v16
         with:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
