@@ -29,6 +29,12 @@ rec {
       pkg-config
       capnproto
     ];
+
+    # Our repo's `.cargo/config.toml` sets `[build] target = [...]` for IDE analysis.
+    # In Nix builds we typically only have std installed for the host target, so
+    # force Cargo to build for the host here.
+    CARGO_BUILD_TARGET =
+      if pkgs.stdenv.hostPlatform.isDarwin then "aarch64-apple-darwin" else "x86_64-unknown-linux-gnu";
   };
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;

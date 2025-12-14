@@ -6,12 +6,30 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+native = ["dep:sequoia-gpg-agent"]
+challenge = []
+
 [dependencies]
-pdf-sign-core = { path = "../core" }
+pdf-sign-core.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 serde.workspace = true
 sequoia-openpgp.workspace = true
-sequoia-gpg-agent.workspace = true
-tokio.workspace = true
+base64.workspace = true
+chrono.workspace = true
+
+[dependencies.sequoia-gpg-agent]
+workspace = true
+optional = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { workspace = true, features = ["full"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tokio = { workspace = true, features = ["sync", "macros"] }
+
+[dev-dependencies]
+serde_json.workspace = true

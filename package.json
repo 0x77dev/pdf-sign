@@ -1,0 +1,12 @@
+{
+  "name": "@pdf-sign/workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "crates/wasm/pkg"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "nx": "^22.2.3"
+  }
+}

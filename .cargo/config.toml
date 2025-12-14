@@ -1,0 +1,5 @@
+[target.wasm32-unknown-unknown]
+# Disable hardening flags that don't work with WASM
+rustflags = [
+    "-C", "link-arg=-zstack-size=4194304",
+]

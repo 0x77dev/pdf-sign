@@ -6,19 +6,27 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 
+[features]
+default = []
+native = []
+wasm = []
+
 [dependencies]
-pdf-sign-core = { path = "../core" }
+pdf-sign-core.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sigstore.workspace = true
-tokio.workspace = true
 base64.workspace = true
-webbrowser = "1.0"
-openidconnect = "4.0"
-x509-cert = "0.2"
-const-oid = "0.9"
-sigstore_protobuf_specs = "0.5"
-regex = "1.11"
+openidconnect.workspace = true
+x509-cert.workspace = true
+const-oid.workspace = true
+sigstore_protobuf_specs.workspace = true
+regex.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+sigstore = { workspace = true, features = ["bundle", "sign", "verify", "fulcio", "rekor", "oauth", "sigstore-trust-root", "rustls-tls", "rustls-tls-native-roots"] }
+tokio = { workspace = true, features = ["full"] }
+webbrowser.workspace = true
+

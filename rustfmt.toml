@@ -1,0 +1,9 @@
+# Keep formatting consistent with .editorconfig
+edition = "2024"
+
+# .editorconfig: indent_style=space, indent_size=2
+hard_tabs = false
+tab_spaces = 2
+
+# .editorconfig: end_of_line=lf
+newline_style = "Unix"

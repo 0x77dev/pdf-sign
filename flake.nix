@@ -54,6 +54,11 @@
         packages = {
           default = package.pdfSign;
           pdf-sign = package.pdfSign;
+          pdf-sign-wasm =
+            (import ./nix/wasm.nix {
+              inherit pkgs craneLib;
+              lib = pkgs.lib;
+            }).pdf-sign-wasm;
         };
 
         devShells.default = import ./nix/shell.nix {

@@ -5,16 +5,22 @@ members = [
     "crates/gpg",
     "crates/sigstore",
     "crates/cli",
+    "crates/wasm",
 ]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-only"
-authors = ["Heorhi Valakhanovich <0x77@e.email>"]
+authors = ["Mykhailo Marynenko <mykhailo@0x77.dev>"]
 repository = "https://github.com/0x77dev/pdf-sign"
 
 [workspace.dependencies]
+# Internal crates
+pdf-sign-core = { path = "crates/core" }
+pdf-sign-gpg = { path = "crates/gpg", default-features = false }
+pdf-sign-sigstore = { path = "crates/sigstore", default-features = false }
+
 # Core dependencies
 anyhow = "1.0"
 thiserror = "2.0"
@@ -29,18 +35,21 @@ bilrost-derive = "0.1010"
 # Hashing
 sha2 = "0.10"
 base64 = "0.22"
+getrandom = "0.2"
+chrono = "0.4"
 
 # OpenPGP (sequoia)
 sequoia-openpgp = { version = "2", default-features = false, features = ["crypto-rust", "allow-experimental-crypto", "allow-variable-time-crypto"] }
 sequoia-gpg-agent = "0.6"
 
-# Sigstore and dependencies
-sigstore = { version = "0.13", default-features = false, features = ["bundle", "sign", "verify", "fulcio", "rekor", "oauth", "sigstore-trust-root", "native-tls"] }
+# Sigstore dependencies
+sigstore = { version = "0.13", default-features = false }
 sigstore_protobuf_specs = "0.5"
 x509-cert = "0.2"
 const-oid = "0.9"
 openidconnect = "4.0"
 webbrowser = "1.0"
+regex = "1.11"
 
 # CLI dependencies
 clap = { version = "4.5", features = ["derive"] }
@@ -49,7 +58,13 @@ indicatif = "0.18"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 
 # Async runtime
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1", default-features = false }
+
+# WASM dependencies
+wasm-bindgen = "0.2"
+tsify = "0.5.6"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen-test = "0.3"
 
 [profile.release]
 opt-level = 3

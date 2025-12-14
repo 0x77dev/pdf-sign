@@ -59,6 +59,7 @@ nix build
 Unified signing command with backend selection.
 
 **GPG backend (default):**
+
 ```bash
 pdf-sign sign contract.pdf --key 0xF1171FAAAA237211
 # or explicitly:
@@ -66,20 +67,24 @@ pdf-sign sign --backend gpg contract.pdf --key user@example.com
 ```
 
 **Sigstore backend:**
+
 ```bash
 pdf-sign sign --backend sigstore document.pdf
 ```
 
 **Common options:**
+
 * `--output, -o`: Output path (default: `<input>_signed.pdf`)
 * `--backend, -b`: Backend to use (`gpg` or `sigstore`, default: `gpg`)
 * `--json`: Machine-readable JSON output
 
 **GPG-specific options:**
+
 * `--key, -k`: Key spec (file, fingerprint, key ID, or email) - **required for GPG**
 * `--embed-uid`: Embed signer UID as notation
 
 **Sigstore-specific options:**
+
 * `--oidc-issuer <URL>`: OIDC provider (default: `https://oauth2.sigstore.dev/auth`)
 * `--fulcio-url <URL>`: Fulcio CA (default: `https://fulcio.sigstore.dev`)
 * `--rekor-url <URL>`: Rekor log (default: `https://rekor.sigstore.dev`)
@@ -112,9 +117,11 @@ pdf-sign verify multi_signed.pdf \
 ```
 
 **GPG verification options:**
+
 * `--cert, -c`: Optional cert spec (can repeat)
 
 **Sigstore verification options:**
+
 * `--certificate-identity <EMAIL|URI>`: Expected signer identity (required if Sigstore sigs present)
 * `--certificate-identity-regexp <REGEX>`: Identity regex
 * `--certificate-oidc-issuer <URL>`: Expected issuer (required if Sigstore sigs present)
@@ -122,6 +129,53 @@ pdf-sign verify multi_signed.pdf \
 * `--offline`: Skip Rekor verification
 
 **Common options:**
+
+* `--json`: Machine-readable JSON output
+
+### `challenge` - Prepare signing challenge for remote/air-gapped GPG signing
+
+Create a challenge file for signing on a remote or air-gapped machine.
+
+```bash
+pdf-sign challenge document.pdf --key 0xDEADBEEF --output challenge.json
+```
+
+**Options:**
+
+* `--key, -k`: Key specification (required)
+* `--output, -o`: Output path for challenge JSON (default: stdout)
+* `--embed-uid`: Embed signer UID into signature
+* `--json`: Machine-readable JSON output
+
+**Challenge format:**
+
+```json
+{
+  "version": 1,
+  "fingerprint": "ABCD1234...",
+  "data_base64": "SGVsbG8...",
+  "gpg_command": "echo 'SGVsbG8...' | base64 -d | gpg --detach-sign --armor -u 0xDEADBEEF > signature.asc",
+  "created_at": "2025-12-13T10:00:00Z",
+  "embed_uid": false
+}
+```
+
+### `apply-response` - Apply signature response from challenge-response workflow
+
+Apply a signature created on a remote machine to complete the signing process.
+
+```bash
+pdf-sign apply-response document.pdf \
+  --challenge challenge.json \
+  --signature signature.asc \
+  --output signed.pdf
+```
+
+**Options:**
+
+* `--challenge, -c`: Path to challenge JSON file (required)
+* `--signature, -s`: Path to signature file (.asc) (required)
+* `--output, -o`: Output path for signed PDF (default: `<input>_signed.pdf`)
 * `--json`: Machine-readable JSON output
 
 ## Features
@@ -141,10 +195,19 @@ pdf-sign verify multi_signed.pdf \
 * **Strict verification**: Requires explicit identity and issuer constraints (prevents identity confusion).
 * **Customizable endpoints**: Use public Sigstore or private deployments.
 
+### Challenge-Response Workflow
+
+* **Air-gapped signing**: Keep private keys isolated on secure machines
+* **Remote signing**: Sign on different servers without copying keys
+* **HSM support**: Sign with hardware security modules
+* **Audit trail**: Clear separation between digest preparation and signing
+* **Standard format**: Uses standard OpenPGP detached signatures
+
 ### Architecture
 
 * **Portable core**: PDF splitting, suffix parsing, digest abstraction (no CLI/UI deps).
 * **Pluggable backends**: Clean separation between GPG and Sigstore signing logic.
+* **WASM-ready**: Core library and backends compile to WebAssembly.
 * **Hash agility**: SHA-512 default with SRI-style encoding (`sha512-<base64>`).
 * **Versioned format**: Sigstore blocks use bilrost (efficient binary) with version tagging.
 * **Structured tracing**: Full `tracing` instrumentation (never logs sensitive data).
@@ -167,22 +230,22 @@ pdf-sign verify multi_signed.pdf \
 
 ## Embedded Signature Formats
 
-### OpenPGP
+### OpenPGP Format
 
 Standard ASCII-armored blocks appended after `%%EOF`:
 
-```
+```text
 %%EOF
 -----BEGIN PGP SIGNATURE-----
 ...
 -----END PGP SIGNATURE-----
 ```
 
-### Sigstore
+### Sigstore Format
 
 Versioned bilrost-encoded blocks with digest binding:
 
-```
+```text
 %%EOF
 -----BEGIN PDF-SIGN SIGSTORE-----
 <base64-encoded bilrost payload>
@@ -215,20 +278,22 @@ Versioned bilrost-encoded blocks with digest binding:
 
 ## Workspace Structure
 
-```
+```text
 crates/
-├── core/      # Portable library (PDF, suffix, digest)
-├── gpg/       # OpenPGP backend (sequoia)
-├── sigstore/  # Sigstore keyless backend
-└── cli/       # CLI with UI/JSON/tracing setup
+├── core/      # Portable library (PDF, suffix, digest) - WASM-compatible
+├── gpg/       # OpenPGP backend (sequoia) - WASM-compatible
+├── sigstore/  # Sigstore keyless backend - WASM-compatible
+├── wasm/      # WebAssembly bindings with TypeScript definitions
+└── cli/       # CLI with UI/JSON/tracing setup - Native only
 ```
 
 Modular design enables:
 
 * Backend-agnostic PDF processing
-* Future WASM compilation (core + sigstore)
+* Full WASM support (core + gpg + sigstore)
 * Clean testing boundaries
 * Structured tracing without data leakage
+* TypeScript-first browser integration
 
 ## Environment Variables
 
@@ -289,6 +354,59 @@ pdf-sign verify contract_multi.pdf \
   --cert alice.asc \
   --certificate-identity bob@example.com \
   --certificate-oidc-issuer https://accounts.google.com
+```
+
+### Challenge-response for air-gapped signing
+
+```bash
+# 1. On connected machine: Prepare challenge
+pdf-sign challenge sensitive.pdf --key 0xABCD1234 --output challenge.json
+
+# 2. Transfer challenge.json to air-gapped machine
+# 3. On air-gapped machine: Sign the challenge
+cat challenge.json | jq -r '.data_base64' | base64 -d | \
+  gpg --detach-sign --armor -u 0xABCD1234 > signature.asc
+
+# 4. Transfer signature.asc back to connected machine
+# 5. On connected machine: Apply signature
+pdf-sign apply-response sensitive.pdf \
+  --challenge challenge.json \
+  --signature signature.asc \
+  --output sensitive_signed.pdf
+
+# 6. Verify the result
+pdf-sign verify sensitive_signed.pdf
+```
+
+### WASM in browser
+
+```bash
+# Build WASM package with Nix
+nix develop
+cd crates/wasm
+wasm-pack build --target web
+
+# Copy pkg/ to your web project
+cp -r pkg /path/to/your/web/project/
+```
+
+```javascript
+import init, { prepare_challenge, apply_response, verify_gpg } from './pkg/pdf_sign_wasm.js';
+
+await init();
+
+// Client-side GPG verification
+const pdfFile = await fetch('document_signed.pdf');
+const pdfBytes = new Uint8Array(await pdfFile.arrayBuffer());
+const result = verify_gpg(pdfBytes);
+
+if (result.valid) {
+  console.log('Valid signatures:');
+  result.gpg_signatures.forEach(sig => {
+    console.log(`  - ${sig.fingerprint}`);
+    sig.uids.forEach(uid => console.log(`    ${uid}`));
+  });
+}
 ```
 
 ## License
