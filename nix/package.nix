@@ -17,24 +17,22 @@ rec {
       || (craneLib.filterCargoSources path type);
   };
 
+  # Read version from Cargo.toml
+  cargoToml = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  version = cargoToml.workspace.package.version;
+
   commonArgs = {
     inherit src;
     strictDeps = true;
 
     # Explicitly set for workspace builds
     pname = "pdf-sign";
-    version = "0.1.0";
+    inherit version;
 
     nativeBuildInputs = with pkgs; [
       pkg-config
       capnproto
     ];
-
-    # Our repo's `.cargo/config.toml` sets `[build] target = [...]` for IDE analysis.
-    # In Nix builds we typically only have std installed for the host target, so
-    # force Cargo to build for the host here.
-    CARGO_BUILD_TARGET =
-      if pkgs.stdenv.hostPlatform.isDarwin then "aarch64-apple-darwin" else "x86_64-unknown-linux-gnu";
   };
 
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
@@ -67,16 +65,13 @@ rec {
 
     config = {
       Cmd = [ "${lib.getExe pdfSign}" ];
-      WorkingDir = "/work";
+      WorkingDir = "/data";
       Env = [
         "GNUPGHOME=/gnupg"
       ];
-      ExposedPorts = {
-        "8080/tcp" = { };
-      };
       Volumes = {
         "/gnupg" = { };
-        "/work" = { };
+        "/data" = { };
       };
     };
   };
