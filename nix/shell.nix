@@ -1,6 +1,7 @@
 {
   pkgs,
   pdfSign,
+  autocast,
   pre-commit-check,
 }:
 pkgs.mkShell {
@@ -17,6 +18,20 @@ pkgs.mkShell {
       clippy
       pkg-config
       capnproto
+
+      # WASM tooling
+      wasm-pack
+      wasm-bindgen-cli
+      binaryen
+      lld
+
+      # Web development
+      bun
+      nodejs_24
+
+      # Demo tools
+      asciinema
+      autocast
     ]
     ++ pre-commit-check.enabledPackages;
 }

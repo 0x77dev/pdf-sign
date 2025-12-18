@@ -1,0 +1,5 @@
+[target.wasm32-unknown-unknown]
+# Configure WASM target with appropriate stack size
+rustflags = [
+    "-C", "link-arg=-zstack-size=4194304",
+]

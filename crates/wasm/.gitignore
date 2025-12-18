@@ -1,0 +1,5 @@
+# Generated WASM package
+pkg/
+
+# wasm-pack artifacts
+*.wasm

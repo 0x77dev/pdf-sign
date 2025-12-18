@@ -4,3 +4,6 @@ result
 result-*
 .direnv/
 /.pre-commit-config.yaml
+node_modules/
+build/
+.output/

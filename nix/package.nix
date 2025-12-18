@@ -4,9 +4,30 @@
   lib,
 }:
 rec {
+  # Filter source to include workspace crates
+  src = lib.cleanSourceWith {
+    src = craneLib.path ../.;
+    filter =
+      path: type:
+      # Keep all Rust source, Cargo files, and the crates directory
+      (lib.hasSuffix "\.rs" path)
+      || (lib.hasSuffix "Cargo.toml" path)
+      || (lib.hasSuffix "Cargo.lock" path)
+      || (lib.hasInfix "/crates/" path)
+      || (craneLib.filterCargoSources path type);
+  };
+
+  # Read version from Cargo.toml
+  cargoToml = builtins.fromTOML (builtins.readFile ../Cargo.toml);
+  version = cargoToml.workspace.package.version;
+
   commonArgs = {
-    src = craneLib.cleanCargoSource ../.;
+    inherit src;
     strictDeps = true;
+
+    # Explicitly set for workspace builds
+    pname = "pdf-sign";
+    inherit version;
 
     nativeBuildInputs = with pkgs; [
       pkg-config
@@ -20,13 +41,43 @@ rec {
     commonArgs
     // {
       inherit cargoArtifacts;
+
+      # Build only the CLI binary from the workspace
+      cargoExtraArgs = "--bin pdf-sign";
+
       meta = with lib; {
-        description = "Lightweight PDF signing tool that appends detached OpenPGP signatures (delegates signing to gpg-agent)";
+        description = "Lightweight PDF signing tool with OpenPGP (GPG) and Sigstore (keyless OIDC) backends";
         homepage = "https://github.com/0x77dev/pdf-sign";
         license = licenses.gpl3Only;
         mainProgram = "pdf-sign";
         platforms = platforms.unix;
       };
+
+      passthru.image = image;
     }
   );
+
+  image = pkgs.dockerTools.buildLayeredImage {
+    name = "ghcr.io/0x77dev/pdf-sign";
+    tag = "latest";
+
+    contents = [ pdfSign ];
+
+    config = {
+      Cmd = [ "${lib.getExe pdfSign}" ];
+      WorkingDir = "/data";
+      Env = [
+        "GNUPGHOME=/gnupg"
+        # OIDC_REDIRECT_PORT can be set at runtime for Sigstore signing
+      ];
+      Volumes = {
+        "/gnupg" = { };
+        "/data" = { };
+      };
+      ExposedPorts = {
+        # Dynamic OIDC redirect port (can be mapped with -p)
+        "8080/tcp" = { };
+      };
+    };
+  };
 }

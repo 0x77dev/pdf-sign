@@ -10,6 +10,10 @@ jobs:
   build:
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.runs_on }}
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
     strategy:
       fail-fast: false
       matrix:
@@ -36,7 +40,6 @@ jobs:
         with:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          skipPush: ${{ github.event_name == 'pull_request' }}
 
       - name: Build (flake)
         run: |
@@ -51,10 +54,48 @@ jobs:
           mkdir -p dist
           cp -L result/bin/pdf-sign "dist/pdf-sign-${{ runner.os }}-$(uname -m)"
 
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: dist/*
+
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
           name: pdf-sign-${{ matrix.name }}
           path: dist/*
 
+  shell:
+    name: Dev Shell (${{ matrix.name }})
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            runs_on: ubuntu-24.04
+          - name: linux-arm64
+            runs_on: ubuntu-24.04-arm
+          - name: macos-arm64
+            runs_on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: pdf-sign
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Build dev shell
+        run: |
+          nix develop --command true
 

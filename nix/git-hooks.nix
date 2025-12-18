@@ -13,4 +13,6 @@ git-hooks.lib.${system}.run {
     shellcheck.enable = true;
     rustfmt.enable = true;
   };
+
+  package = pkgs.prek;
 }

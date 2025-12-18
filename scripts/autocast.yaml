@@ -1,0 +1,79 @@
+# tools/autocast.yaml
+# asciinema demo script for pdf-sign using autocast:
+# https://github.com/k9withabone/autocast
+# Note: we run bash with --noprofile/--norc and a fixed prompt for reliable capture.
+
+settings:
+  width: 140
+  height: 40
+  title: pdf-sign demo (GPG + Sigstore + multi-sign)
+  # Building from scratch + GPG key generation can be slow on CI.
+  timeout: 900s
+  prompt: "\u001b[1;32m❯\u001b[0m "
+  # Force a stable prompt detector (avoid user rc / starship).
+  shell: !Custom
+    program: bash
+    args:
+      - --noprofile
+      - --norc
+    prompt: "❯ "
+    line_split: ' \'
+    quit_command: exit
+  environment:
+    - name: TERM
+      value: xterm-256color
+    - name: COLORTERM
+      value: truecolor
+    - name: PS1
+      value: "❯ "
+    - name: PDF_SIGN_NO_PROGRESS
+      value: "1"
+
+instructions:
+  - !Command
+    command: pdf-sign --help
+  - !Wait 2s
+
+  - !Marker GPG sign + verify
+  - !Command
+    command: "# Sign with GPG"
+  - !Command
+    command: pdf-sign sign bitcoin.pdf --key demo@example.invalid
+  - !Wait 1s
+  - !Command
+    command: ls -lh bitcoin.pdf bitcoin_signed.pdf
+  - !Wait 1500ms
+  - !Command
+    command: pdf-sign verify bitcoin_signed.pdf
+  - !Wait 2s
+
+  - !Marker Tamper (editing breaks signature)
+  - !Command
+    command: "# Modify the PDF → verification fails."
+  - !Command
+    command: |
+      cp bitcoin_signed.pdf tampered.pdf
+      printf X | dd of=tampered.pdf bs=1 seek=4096 count=1 conv=notrunc 2>/dev/null
+    hidden: true
+  - !Command
+    command: |
+      pdf-sign verify tampered.pdf || echo "expected: verification failed after tamper"
+  - !Wait 2500ms
+
+  - !Marker Sigstore sign + verify
+  - !Command
+    command: pdf-sign sign --backend sigstore bitcoin.pdf --output sigstore_signed.pdf
+  - !Wait 1s
+  - !Command
+    command: pdf-sign verify sigstore_signed.pdf
+  - !Wait 2s
+
+  - !Marker Multi-sign (GPG + Sigstore)
+  - !Command
+    command: "# One PDF can carry multiple signatures, like GPG and Sigstore combined, or multiple parties signing."
+  - !Command
+    command: pdf-sign sign --backend sigstore bitcoin_signed.pdf --output multi_signed.pdf
+  - !Wait 1s
+  - !Command
+    command: pdf-sign verify multi_signed.pdf
+  - !Wait 3s
