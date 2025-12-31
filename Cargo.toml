@@ -72,3 +72,6 @@ opt-level = 3
 lto = "fat"
 codegen-units = 1
 strip = true
+
+[patch.crates-io]
+sigstore = { path = "vendor" }

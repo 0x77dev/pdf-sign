@@ -1,12 +1,13 @@
 //! Sigstore keyless signing (OIDC + Fulcio + Rekor).
 
-use anyhow::{Context, Result, bail};
-use pdf_sign_core::{DigestAlgorithm, compute_digest, suffix::SigstoreBundleBlock};
+use anyhow::{bail, Context, Result};
+use pdf_sign_core::{compute_digest, suffix::SigstoreBundleBlock, DigestAlgorithm};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use std::time::Duration;
 #[cfg(not(target_arch = "wasm32"))]
 use std::env;
+#[cfg(not(target_arch = "wasm32"))]
+use tracing::warn;
 #[cfg(not(target_arch = "wasm32"))]
 use reqwest;
 
@@ -104,23 +105,29 @@ pub async fn sign_blob(data: &[u8], options: &SignOptions) -> Result<SignResult>
 
   // Obtain identity token
   let identity_token = if let Some(token) = &options.identity_token {
-    // Try to fetch a fresh GitHub Actions token with audience=sigstore if available
+    // Parse the raw JWT token directly; Fulcio validates it.
+    let parsed = sigstore::oauth::IdentityToken::try_from(token.as_str())
+      .context("Failed to parse identity token")?;
+
     #[cfg(not(target_arch = "wasm32"))]
     {
-      if let Ok(fresh_token) = maybe_fetch_github_actions_token().await {
-        fresh_token
+      // Prefer a fresh GitHub Actions token (audience=sigstore) when available to avoid
+      // mis-minted or stale tokens passed in by the caller.
+      if let Some(fresh) = maybe_fetch_github_actions_token().await? {
+        tracing::debug!("Using GitHub Actions ID token with audience=sigstore (overrides provided token)");
+        fresh
+      } else if !parsed.has_sigstore_audience() {
+        bail!(
+          "Provided identity token is missing audience 'sigstore'. In GitHub Actions, request an ID token with audience=sigstore (set 'id-token: write' permission and fetch via ACTIONS_ID_TOKEN_REQUEST_URL)."
+        );
       } else {
-        // Fall back to provided token
-        sigstore::oauth::IdentityToken::from(
-          openidconnect::IdToken::from_str(token).context("Failed to parse identity token")?,
-        )
+        parsed
       }
     }
+
     #[cfg(target_arch = "wasm32")]
     {
-      sigstore::oauth::IdentityToken::from(
-        openidconnect::IdToken::from_str(token).context("Failed to parse identity token")?,
-      )
+      parsed
     }
   } else {
     tracing::debug!("Starting interactive OIDC flow");
@@ -176,6 +183,58 @@ pub async fn sign_blob(data: &[u8], options: &SignOptions) -> Result<SignResult>
     rekor_log_index,
     bundle_block,
   })
+}
+
+/// If running inside GitHub Actions and provided token lacks the `sigstore` audience, fetch a new token.
+/// This helps avoid stale/mis-audienced tokens supplied by callers when the workflow already has `id-token: write`.
+#[cfg(not(target_arch = "wasm32"))]
+async fn maybe_fetch_github_actions_token(
+) -> Result<Option<sigstore::oauth::IdentityToken>> {
+  let request_url = match env::var("ACTIONS_ID_TOKEN_REQUEST_URL") {
+    Ok(v) => v,
+    Err(_) => return Ok(None),
+  };
+  let request_token = match env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN") {
+    Ok(v) => v,
+    Err(_) => return Ok(None),
+  };
+
+  // Append audience=sigstore; GitHub Actions requires an explicit audience parameter.
+  let url = if request_url.contains("audience=") {
+    request_url
+  } else if request_url.contains('?') {
+    format!("{}&audience=sigstore", request_url)
+  } else {
+    format!("{}?audience=sigstore", request_url)
+  };
+
+  let client = reqwest::Client::new();
+  let resp = client
+    .get(&url)
+    .bearer_auth(request_token)
+    .send()
+    .await
+    .context("Failed to request GitHub Actions ID token")?;
+
+  if !resp.status().is_success() {
+    warn!(status = resp.status().as_u16(), "GitHub Actions ID token request failed");
+    return Ok(None);
+  }
+
+  let body: GitHubIdTokenResponse = resp
+    .json()
+    .await
+    .context("Failed to decode GitHub Actions ID token response")?;
+
+  let token = sigstore::oauth::IdentityToken::try_from(body.value.as_str())
+    .context("GitHub Actions ID token malformed")?;
+
+  if !token.has_sigstore_audience() {
+    warn!("GitHub Actions ID token still missing 'sigstore' audience");
+    return Ok(None);
+  }
+
+  Ok(Some(token))
 }
 
 /// Extract certificate identity and issuer from bundle.
@@ -300,46 +359,4 @@ async fn obtain_identity_token(
 
   tracing::debug!("Identity token obtained");
   Ok(sigstore::oauth::IdentityToken::from(token))
-}
-
-/// Attempt to fetch a fresh GitHub Actions OIDC token with audience=sigstore.
-/// Returns Ok(token) on success, or Err if not in GitHub Actions or fetch fails.
-#[cfg(not(target_arch = "wasm32"))]
-async fn maybe_fetch_github_actions_token() -> Result<sigstore::oauth::IdentityToken> {
-  let request_url = env::var("ACTIONS_ID_TOKEN_REQUEST_URL")
-    .ok()
-    .ok_or_else(|| anyhow::anyhow!("Not in GitHub Actions"))?;
-  let request_token = env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
-    .ok()
-    .ok_or_else(|| anyhow::anyhow!("No token request credentials"))?;
-
-  // Append audience=sigstore if not already present
-  let url = if request_url.contains("audience=") {
-    request_url
-  } else if request_url.contains('?') {
-    format!("{}&audience=sigstore", request_url)
-  } else {
-    format!("{}?audience=sigstore", request_url)
-  };
-
-  let client = reqwest::Client::new();
-  let resp = client
-    .get(&url)
-    .bearer_auth(request_token)
-    .send()
-    .await
-    .context("Failed to request GitHub Actions ID token")?;
-
-  if !resp.status().is_success() {
-    return Err(anyhow::anyhow!("GitHub Actions token request failed: {}", resp.status()));
-  }
-
-  let body: GitHubIdTokenResponse = resp
-    .json()
-    .await
-    .context("Failed to decode GitHub Actions token response")?;
-
-  Ok(sigstore::oauth::IdentityToken::from(
-    openidconnect::IdToken::from_str(&body.value).context("Failed to parse GitHub Actions token")?,
-  ))
 }
