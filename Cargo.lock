@@ -2675,6 +2675,7 @@ dependencies = [
  "openidconnect",
  "pdf-sign-core",
  "regex",
+ "reqwest",
  "serde",
  "serde_json",
  "sigstore",

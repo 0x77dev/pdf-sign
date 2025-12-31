@@ -5,6 +5,10 @@ use pdf_sign_core::{DigestAlgorithm, compute_digest, suffix::SigstoreBundleBlock
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::time::Duration;
+#[cfg(not(target_arch = "wasm32"))]
+use std::env;
+#[cfg(not(target_arch = "wasm32"))]
+use reqwest;
 
 /// Sigstore service endpoints configuration.
 #[derive(Debug, Clone)]
@@ -56,6 +60,12 @@ pub struct SignResult {
   pub bundle_block: SigstoreBundleBlock,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Deserialize)]
+struct GitHubIdTokenResponse {
+  value: String,
+}
+
 /// Sign a blob using Sigstore keyless (OIDC) signing.
 ///
 /// This performs the following steps:
@@ -94,11 +104,24 @@ pub async fn sign_blob(data: &[u8], options: &SignOptions) -> Result<SignResult>
 
   // Obtain identity token
   let identity_token = if let Some(token) = &options.identity_token {
-    tracing::debug!("Using provided identity token");
-    // Parse the raw JWT token
-    sigstore::oauth::IdentityToken::from(
-      openidconnect::IdToken::from_str(token).context("Failed to parse identity token")?,
-    )
+    // Try to fetch a fresh GitHub Actions token with audience=sigstore if available
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+      if let Ok(fresh_token) = maybe_fetch_github_actions_token().await {
+        fresh_token
+      } else {
+        // Fall back to provided token
+        sigstore::oauth::IdentityToken::from(
+          openidconnect::IdToken::from_str(token).context("Failed to parse identity token")?,
+        )
+      }
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+      sigstore::oauth::IdentityToken::from(
+        openidconnect::IdToken::from_str(token).context("Failed to parse identity token")?,
+      )
+    }
   } else {
     tracing::debug!("Starting interactive OIDC flow");
     obtain_identity_token(&options.endpoints).await?
@@ -277,4 +300,46 @@ async fn obtain_identity_token(
 
   tracing::debug!("Identity token obtained");
   Ok(sigstore::oauth::IdentityToken::from(token))
+}
+
+/// Attempt to fetch a fresh GitHub Actions OIDC token with audience=sigstore.
+/// Returns Ok(token) on success, or Err if not in GitHub Actions or fetch fails.
+#[cfg(not(target_arch = "wasm32"))]
+async fn maybe_fetch_github_actions_token() -> Result<sigstore::oauth::IdentityToken> {
+  let request_url = env::var("ACTIONS_ID_TOKEN_REQUEST_URL")
+    .ok()
+    .ok_or_else(|| anyhow::anyhow!("Not in GitHub Actions"))?;
+  let request_token = env::var("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+    .ok()
+    .ok_or_else(|| anyhow::anyhow!("No token request credentials"))?;
+
+  // Append audience=sigstore if not already present
+  let url = if request_url.contains("audience=") {
+    request_url
+  } else if request_url.contains('?') {
+    format!("{}&audience=sigstore", request_url)
+  } else {
+    format!("{}?audience=sigstore", request_url)
+  };
+
+  let client = reqwest::Client::new();
+  let resp = client
+    .get(&url)
+    .bearer_auth(request_token)
+    .send()
+    .await
+    .context("Failed to request GitHub Actions ID token")?;
+
+  if !resp.status().is_success() {
+    return Err(anyhow::anyhow!("GitHub Actions token request failed: {}", resp.status()));
+  }
+
+  let body: GitHubIdTokenResponse = resp
+    .json()
+    .await
+    .context("Failed to decode GitHub Actions token response")?;
+
+  Ok(sigstore::oauth::IdentityToken::from(
+    openidconnect::IdToken::from_str(&body.value).context("Failed to parse GitHub Actions token")?,
+  ))
 }
