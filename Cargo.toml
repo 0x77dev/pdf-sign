@@ -48,6 +48,7 @@ sigstore_protobuf_specs = "0.5"
 x509-cert = "0.2"
 const-oid = "0.9"
 openidconnect = "4.0"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 webbrowser = "1.0"
 regex = "1.11"
 
@@ -71,3 +72,6 @@ opt-level = 3
 lto = "fat"
 codegen-units = 1
 strip = true
+
+[patch.crates-io]
+sigstore = { path = "vendor" }
