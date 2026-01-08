@@ -1,0 +1,130 @@
+on: [push, pull_request]
+
+name: Continuous integration
+
+jobs:
+  check:
+    name: Check features
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - uses: taiki-e/install-action@0005e0116e92d8489d8d96fbff83f061c79ba95a # v2.62.31
+        with:
+          tool: cargo-hack
+
+      # cosign, full, mock-client, registry will ONLY compile with a *-tls feature
+      - run: |
+          cargo hack check --each-feature --skip cosign --skip full --skip mock-client --skip registry
+
+  check-native-tls:
+    name: Check native-tls features
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - uses: taiki-e/install-action@0005e0116e92d8489d8d96fbff83f061c79ba95a # v2.62.31
+        with:
+          tool: cargo-hack
+      - run: |
+          cargo hack check --feature-powerset --features native-tls --skip wasm --skip test-registry --skip rustls-tls --skip rustls-tls-native-roots
+
+  check-rustls-tls:
+    name: Check rusttls-tls features
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - uses: taiki-e/install-action@0005e0116e92d8489d8d96fbff83f061c79ba95a # v2.62.31
+        with:
+          tool: cargo-hack
+      - run: |
+          cargo hack check --feature-powerset --features rustls-tls --skip wasm --skip test-registry --skip native-tls
+
+  test-native-tls:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          cargo test --workspace --no-default-features --features full,native-tls,test-registry
+
+  test-rustls-tls:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          cargo test --workspace --no-default-features --features full,rustls-tls,test-registry
+
+  doc:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@4f94fbe7e03939b0e674bcc9ca609a16088f63ff # nightly
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          make doc
+
+  toml:
+    name: Toml format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+      - uses: taiki-e/install-action@0005e0116e92d8489d8d96fbff83f061c79ba95a # v2.62.31
+        with:
+          tool: taplo-cli
+      - run: |
+          taplo fmt --check
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@38b70195107dddab2c7bbd522bcf763bac00963b # stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          cargo clippy --workspace -- -D warnings
