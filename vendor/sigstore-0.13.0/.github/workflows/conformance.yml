@@ -1,0 +1,21 @@
+on: [workflow_dispatch]
+
+name: Conformance Suite
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Rustup
+        run: |
+          rustup install --profile minimal stable
+          rustup override set stable
+      - uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
+      - run: |
+          cargo build --manifest-path=tests/conformance/Cargo.toml
+      - uses: sigstore/sigstore-conformance@main
+        with:
+          entrypoint: ${{ github.workspace }}/tests/conformance/target/debug/sigstore
