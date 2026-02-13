@@ -29,4 +29,5 @@ regex.workspace = true
 sigstore = { workspace = true, features = ["bundle", "sign", "verify", "fulcio", "rekor", "oauth", "sigstore-trust-root", "rustls-tls", "rustls-tls-native-roots"] }
 tokio = { workspace = true, features = ["full"] }
 webbrowser.workspace = true
+reqwest.workspace = true
 
