@@ -249,11 +249,12 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bilrost"
-version = "0.1010.2"
+version = "0.1014.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "727e8ccb46389934208ec8ad5204eba0300e6f81346c3192cce4315ebac2ff26"
+checksum = "be62a88fe2e8da9012cbf81085cc86f53ce9a8584507180e3eb9918a9b77b02f"
 dependencies = [
- "bilrost-derive",
+ "autocfg",
+ "bilrost-derive 0.1014.1",
  "bytes",
  "thin-vec",
 ]
@@ -266,6 +267,19 @@ checksum = "9d9e65b427ff4464ab71b1edbbfac6afac9f88bf066edc36906b97caee674d7a"
 dependencies = [
  "anyhow",
  "itertools 0.13.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "bilrost-derive"
+version = "0.1014.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a770fdbaa701326b4fe9400bb5dada1ec01a8b026f078154f010ffed544a5da1"
+dependencies = [
+ "eyre",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -1162,6 +1176,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "eyre"
+version = "0.6.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cd915d99f24784cdc19fd37ef22b97e3ff0ae756c7e492e9fbfe897d61e2aec"
+dependencies = [
+ "indenter",
+ "once_cell",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1762,6 +1786,12 @@ dependencies = [
  "icu_normalizer",
  "icu_properties",
 ]
+
+[[package]]
+name = "indenter"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "964de6e86d545b246d84badc0fef527924ace5134f30641c203ef52ba83f58d5"
 
 [[package]]
 name = "indexmap"
@@ -2614,7 +2644,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "bilrost",
- "bilrost-derive",
+ "bilrost-derive 0.1010.2",
  "serde",
  "sha2",
  "thiserror 2.0.18",
