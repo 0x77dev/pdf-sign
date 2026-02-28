@@ -30,7 +30,7 @@ tracing = "0.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 bilrost = "0.1010.2"
-bilrost-derive = "0.1010.2"
+bilrost-derive = "0.1014.0"
 
 # Hashing
 sha2 = "0.10"
