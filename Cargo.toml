@@ -35,7 +35,7 @@ bilrost-derive = "0.1010.2"
 # Hashing
 sha2 = "0.10"
 base64 = "0.22"
-getrandom = "0.3"
+getrandom = "0.4"
 chrono = "0.4"
 
 # OpenPGP (sequoia)
