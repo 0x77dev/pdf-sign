@@ -30,6 +30,9 @@ pkgs.mkShell {
       bun
       nodejs_24
 
+      # OCI tooling
+      skopeo
+
       # Demo tools
       asciinema
       autocast
