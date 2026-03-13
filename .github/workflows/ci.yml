@@ -8,7 +8,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
 
 env:
-  IMAGE: ghcr.io/0x77dev/pdf-sign
+  IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
@@ -73,30 +73,33 @@ jobs:
           name: pdf-sign-${{ matrix.name }}
           path: dist/*
 
-      # --- OCI image build and push (all platforms, push only) ---
+      # --- OCI image build and push (all platforms) ---
 
       - name: Build streaming image
-        if: github.event_name == 'push'
         run: |
           nix build .#image --out-link image
 
       - name: Install skopeo
-        if: github.event_name == 'push'
         run: |
           command -v skopeo || nix profile install nixpkgs#skopeo
 
+      - name: Generate skopeo policy
+        run: |
+          printf '{"default":[{"type":"reject"}],"transports":{"docker-archive":{"":[{"type":"insecureAcceptAnything"}]},"docker":{"ghcr.io/%s":[{"type":"insecureAcceptAnything"}]}}}\n' \
+            "${{ github.repository }}" > "$RUNNER_TEMP/skopeo-policy.json"
+
       - name: Push image to GHCR
-        if: github.event_name == 'push'
+        if: github.event.pull_request.head.repo.fork != true
         run: |
           ./image | gzip --fast | skopeo copy \
-            --policy-file "$GITHUB_WORKSPACE/.github/skopeo-policy.json" \
+            --policy-file "$RUNNER_TEMP/skopeo-policy.json" \
             --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
             docker-archive:/dev/stdin \
             "docker://$IMAGE:sha-${GITHUB_SHA::7}-${{ matrix.platform }}"
 
   docker:
     name: Docker Manifest
-    if: github.event_name == 'push'
+    if: github.event.pull_request.head.repo.fork != true
     needs: build
     runs-on: ubuntu-24.04
     permissions:
