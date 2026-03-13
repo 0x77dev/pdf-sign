@@ -69,6 +69,7 @@
           {
             default = package.pdfSign;
             pdf-sign = package.pdfSign;
+            image = package.image;
             inherit autocast;
           };
 
