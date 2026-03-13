@@ -16,6 +16,7 @@ pkgs.mkShell {
       cargo
       rustfmt
       clippy
+      cargo-audit
       pkg-config
       capnproto
 

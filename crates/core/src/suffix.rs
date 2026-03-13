@@ -1,7 +1,7 @@
 //! Suffix block parsing and encoding (OpenPGP and Sigstore blocks).
 
 use anyhow::{Context, Result};
-use bilrost::Message;
+use bilrost::{Message, OwnedMessage};
 
 const PGP_SIG_BEGIN: &[u8] = b"-----BEGIN PGP SIGNATURE-----";
 const PGP_SIG_END: &[u8] = b"-----END PGP SIGNATURE-----";
