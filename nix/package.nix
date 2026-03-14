@@ -60,13 +60,24 @@ rec {
   image = pkgs.dockerTools.streamLayeredImage {
     name = "ghcr.io/0x77dev/pdf-sign";
 
-    contents = [ pdfSign ];
+    contents = [
+      pdfSign
+      pkgs.dockerTools.caCertificates
+      pkgs.dockerTools.fakeNss
+      pkgs.iana-etc
+    ];
+
+    fakeRootCommands = ''
+      mkdir -p tmp
+      chmod 1777 tmp
+    '';
 
     config = {
-      Cmd = [ "${lib.getExe pdfSign}" ];
+      Entrypoint = [ "${lib.getExe pdfSign}" ];
       WorkingDir = "/data";
       Env = [
         "GNUPGHOME=/gnupg"
+        "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       ];
       Volumes = {
         "/gnupg" = { };

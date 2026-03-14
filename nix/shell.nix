@@ -32,6 +32,8 @@ pkgs.mkShell {
 
       # OCI tooling
       skopeo
+      manifest-tool
+      jq
 
       # Demo tools
       asciinema

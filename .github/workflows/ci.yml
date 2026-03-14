@@ -83,6 +83,7 @@ jobs:
           nix build .#image --out-link image
 
       - name: Push image to GHCR
+        id: push-image
         if: github.event.pull_request.head.repo.fork != true
         run: |
           printf '{"default":[{"type":"reject"}],"transports":{"docker-archive":{"":[{"type":"insecureAcceptAnything"}]},"docker":{"ghcr.io/%s":[{"type":"insecureAcceptAnything"}]}}}\n' \
@@ -90,47 +91,68 @@ jobs:
           ./image | gzip --fast | skopeo \
             --policy "$RUNNER_TEMP/skopeo-policy.json" \
             copy \
+            --digestfile "$RUNNER_TEMP/image-digest" \
             --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
             docker-archive:/dev/stdin \
             "docker://$IMAGE:sha-${GITHUB_SHA::7}-${{ matrix.platform }}"
+          echo "digest=$(cat "$RUNNER_TEMP/image-digest")" >> "$GITHUB_OUTPUT"
+
+      - name: Attest image
+        if: github.event.pull_request.head.repo.fork != true
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push-image.outputs.digest }}
+          push-to-registry: true
 
   docker:
     name: Docker Manifest
     if: github.event.pull_request.head.repo.fork != true
     needs: build
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: nix develop --command bash -eo pipefail {0}
     permissions:
       id-token: write
       contents: read
       packages: write
       attestations: write
     steps:
-      - name: Login to GHCR
-        uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            accept-flake-config = true
+
+      - name: Cachix
+        uses: cachix/cachix-action@v16
+        with:
+          name: pdf-sign
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
       - name: Compute tags
         id: tags
         run: |
           SHA_SHORT="${GITHUB_SHA::7}"
-          TAGS="-t $IMAGE:sha-$SHA_SHORT"
+          TAGS="$IMAGE:sha-$SHA_SHORT"
 
           if [[ "$GITHUB_REF" == refs/heads/main ]]; then
-            TAGS="$TAGS -t $IMAGE:latest"
+            TAGS="$TAGS,$IMAGE:latest"
           fi
 
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
-            TAGS="$TAGS -t $IMAGE:$VERSION"
-            TAGS="$TAGS -t $IMAGE:${VERSION#v}"
+            TAGS="$TAGS,$IMAGE:$VERSION"
+            TAGS="$TAGS,$IMAGE:${VERSION#v}"
 
             MINOR="${VERSION%.*}"
-            TAGS="$TAGS -t $IMAGE:${MINOR#v}"
+            TAGS="$TAGS,$IMAGE:${MINOR#v}"
 
-            TAGS="$TAGS -t $IMAGE:latest"
+            TAGS="$TAGS,$IMAGE:latest"
           fi
 
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
@@ -138,22 +160,46 @@ jobs:
       - name: Create multi-platform manifest
         run: |
           SHA_SHORT="${GITHUB_SHA::7}"
-          docker buildx imagetools create \
-            ${{ steps.tags.outputs.tags }} \
-            "$IMAGE:sha-$SHA_SHORT-linux-amd64" \
-            "$IMAGE:sha-$SHA_SHORT-linux-arm64" \
-            "$IMAGE:sha-$SHA_SHORT-darwin-arm64"
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.tags.outputs.tags }}"
+
+          FIRST_TAG="${TAG_ARRAY[0]}"
+          EXTRA_TAGS=()
+          for tag in "${TAG_ARRAY[@]:1}"; do
+            EXTRA_TAGS+=(--tags "${tag##*:}")
+          done
+
+          manifest-tool \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}" \
+            push from-args \
+            --platforms linux/amd64,linux/arm64,darwin/arm64 \
+            --template "$IMAGE:sha-$SHA_SHORT-OS-ARCH" \
+            --target "$FIRST_TAG" \
+            "${EXTRA_TAGS[@]}"
 
       - name: Get manifest digest
         id: digest
         run: |
           SHA_SHORT="${GITHUB_SHA::7}"
-          DIGEST=$(docker buildx imagetools inspect "$IMAGE:sha-$SHA_SHORT" --format '{{.Manifest.Digest}}')
+          DIGEST=$(skopeo inspect "docker://$IMAGE:sha-$SHA_SHORT" \
+            --creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            | jq -r '.Digest')
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
-      - name: Generate image attestation
+      - name: Attest manifest
         uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.digest.outputs.digest }}
           push-to-registry: true
+
+      - name: Verify attestations
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sleep 5
+          IFS=',' read -ra TAG_ARRAY <<< "${{ steps.tags.outputs.tags }}"
+          for tag in "${TAG_ARRAY[@]}"; do
+            echo "Verifying $tag..."
+            gh attestation verify "oci://$tag" --repo "${{ github.repository }}"
+          done
