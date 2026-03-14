@@ -82,6 +82,13 @@ jobs:
         run: |
           nix build .#image --out-link image
 
+      - name: Login to GHCR
+        if: github.event.pull_request.head.repo.fork != true
+        run: |
+          skopeo login ghcr.io \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}"
+
       - name: Push image to GHCR
         id: push-image
         if: github.event.pull_request.head.repo.fork != true
@@ -92,7 +99,6 @@ jobs:
             --policy "$RUNNER_TEMP/skopeo-policy.json" \
             copy \
             --digestfile "$RUNNER_TEMP/image-digest" \
-            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
             docker-archive:/dev/stdin \
             "docker://$IMAGE:sha-${GITHUB_SHA::7}-${{ matrix.platform }}"
           echo "digest=$(cat "$RUNNER_TEMP/image-digest")" >> "$GITHUB_OUTPUT"
@@ -134,6 +140,12 @@ jobs:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
+      - name: Login to GHCR
+        run: |
+          skopeo login ghcr.io \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}"
+
       - name: Compute tags
         id: tags
         run: |
@@ -168,10 +180,7 @@ jobs:
             EXTRA_TAGS+=(--tags "${tag##*:}")
           done
 
-          manifest-tool \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GITHUB_TOKEN }}" \
-            push from-args \
+          manifest-tool push from-args \
             --platforms linux/amd64,linux/arm64,darwin/arm64 \
             --template "$IMAGE:sha-$SHA_SHORT-OS-ARCH" \
             --target "$FIRST_TAG" \
@@ -181,9 +190,7 @@ jobs:
         id: digest
         run: |
           SHA_SHORT="${GITHUB_SHA::7}"
-          DIGEST=$(skopeo inspect "docker://$IMAGE:sha-$SHA_SHORT" \
-            --creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
-            | jq -r '.Digest')
+          DIGEST=$(skopeo inspect "docker://$IMAGE:sha-$SHA_SHORT" | jq -r '.Digest')
           echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
       - name: Attest manifest
