@@ -57,26 +57,40 @@ rec {
     }
   );
 
-  image = pkgs.dockerTools.buildLayeredImage {
+  image = pkgs.dockerTools.streamLayeredImage {
     name = "ghcr.io/0x77dev/pdf-sign";
-    tag = "latest";
 
-    contents = [ pdfSign ];
+    contents = [
+      pdfSign
+      pkgs.dockerTools.caCertificates
+      pkgs.dockerTools.fakeNss
+      pkgs.iana-etc
+    ];
+
+    fakeRootCommands = ''
+      mkdir -p tmp
+      chmod 1777 tmp
+    '';
 
     config = {
-      Cmd = [ "${lib.getExe pdfSign}" ];
+      Entrypoint = [ "${lib.getExe pdfSign}" ];
       WorkingDir = "/data";
       Env = [
         "GNUPGHOME=/gnupg"
-        # OIDC_REDIRECT_PORT can be set at runtime for Sigstore signing
+        "SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt"
       ];
       Volumes = {
         "/gnupg" = { };
         "/data" = { };
       };
       ExposedPorts = {
-        # Dynamic OIDC redirect port (can be mapped with -p)
         "8080/tcp" = { };
+      };
+      Labels = {
+        "org.opencontainers.image.source" = "https://github.com/0x77dev/pdf-sign";
+        "org.opencontainers.image.description" =
+          "Lightweight PDF signing with OpenPGP (GPG) and Sigstore (keyless OIDC)";
+        "org.opencontainers.image.licenses" = "GPL-3.0-only";
       };
     };
   };
