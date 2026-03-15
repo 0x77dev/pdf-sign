@@ -64,8 +64,6 @@ pub async fn create_signature(
   tracing::debug!("Connecting to GPG agent");
   use sequoia_gpg_agent as agent;
 
-  prepare_agent_pinentry();
-
   let ctx = agent::Context::new().context("Failed to create GPG agent context")?;
   let agent = agent::Agent::connect(&ctx)
     .await
