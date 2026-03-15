@@ -256,8 +256,10 @@ async fn obtain_identity_token(
   .await
   .context("Failed to create OIDC authorization URL")?;
 
-  // Open browser for user authorization
-  webbrowser::open(oidc_url.0.as_ref()).context("Failed to open browser for OIDC authorization")?;
+  let auth_url = oidc_url.0.as_ref();
+  if webbrowser::open(auth_url).is_err() {
+    eprintln!("\nOpen this URL in your browser to authenticate:\n\n  {auth_url}\n");
+  }
 
   tracing::debug!(port = port, "Waiting for OIDC callback");
   let listener = sigstore::oauth::openidflow::RedirectListener::new(

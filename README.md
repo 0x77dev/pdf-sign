@@ -70,7 +70,7 @@ docker pull ghcr.io/0x77dev/pdf-sign
 gh attestation verify oci://ghcr.io/0x77dev/pdf-sign:latest --repo 0x77dev/pdf-sign
 ```
 
-**GPG signing** — mount your host GPG agent socket and keyring:
+**GPG signing** — mount your host GPG agent socket and keyring (Linux only — [macOS Docker Desktop cannot forward Unix sockets](https://github.com/docker/for-mac/issues/483)):
 
 ```bash
 docker run --rm \
