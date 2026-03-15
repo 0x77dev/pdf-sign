@@ -1,6 +1,10 @@
 # pdf-sign
 
+[![built with garnix](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2F0x77dev%2Fpdf-sign%3Fbranch%3Dmain)](https://garnix.io/repo/0x77dev/pdf-sign) [![CI](https://github.com/0x77dev/pdf-sign/actions/workflows/ci.yml/badge.svg)](https://github.com/0x77dev/pdf-sign/actions/workflows/ci.yml)
+
 PDF signing utility written in Rust that supports both **OpenPGP (GPG)** and **Sigstore (keyless OIDC)** signatures, appending cryptographic signatures directly to PDFs, making it easy to sign and verify documents without heavyweight PDF signing stacks, making your PDFs authentic, tamper-proof, while being fully compatible with regular readers.
+
+[![Watch the demo on X](https://pbs.twimg.com/amplify_video_thumb/2000478980236013569/img/FpmQTXfyxCD5yxaW.jpg)](https://twitter.com/0x77dev/status/2000481268258205919)
 
 [![asciicast](https://asciinema.org/a/JXR1crpqtcbMT1DIhD3dzXFB9.svg)](https://asciinema.org/a/JXR1crpqtcbMT1DIhD3dzXFB9)
 
@@ -53,6 +57,54 @@ cargo build --release
 # Or with Nix flake
 nix build
 ./result/bin/pdf-sign --help
+```
+
+### Docker
+
+Multi-platform images (`linux/amd64`, `linux/arm64`, `darwin/arm64`) are published to GHCR with [build provenance attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations).
+
+```bash
+docker pull ghcr.io/0x77dev/pdf-sign
+
+# Verify attestation
+gh attestation verify oci://ghcr.io/0x77dev/pdf-sign:latest --repo 0x77dev/pdf-sign
+```
+
+**GPG signing** — mount your host GPG agent socket and keyring (Linux only — [macOS Docker Desktop cannot forward Unix sockets](https://github.com/docker/for-mac/issues/483)):
+
+```bash
+docker run --rm \
+  -v "$(gpgconf --list-dirs agent-socket)":/gnupg/S.gpg-agent \
+  -v ~/.gnupg/pubring.kbx:/gnupg/pubring.kbx:ro \
+  -v "$PWD":/data \
+  ghcr.io/0x77dev/pdf-sign sign --key 0xDEADBEEF document.pdf
+```
+
+**Sigstore signing (interactive)** — forward the OIDC callback port:
+
+```bash
+docker run --rm \
+  -p 127.0.0.1:8080:8080 -e OIDC_REDIRECT_PORT=8080 \
+  -v "$PWD":/data \
+  ghcr.io/0x77dev/pdf-sign sign --backend sigstore document.pdf
+```
+
+**Sigstore signing (CI/non-interactive)** — pass a pre-obtained identity token:
+
+```bash
+docker run --rm \
+  -e SIGSTORE_IDENTITY_TOKEN="$OIDC_TOKEN" \
+  -v "$PWD":/data \
+  ghcr.io/0x77dev/pdf-sign sign --backend sigstore document.pdf
+```
+
+**Verify signatures:**
+
+```bash
+docker run --rm -v "$PWD":/data \
+  ghcr.io/0x77dev/pdf-sign verify document_signed.pdf \
+  --certificate-identity user@example.com \
+  --certificate-oidc-issuer https://accounts.google.com
 ```
 
 ## Commands

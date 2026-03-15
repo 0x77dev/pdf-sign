@@ -12,6 +12,7 @@ git-hooks.lib.${system}.run {
     nixfmt.enable = true;
     shellcheck.enable = true;
     rustfmt.enable = true;
+    actionlint.enable = true;
   };
 
   package = pkgs.prek;
