@@ -65,6 +65,7 @@ rec {
       pkgs.dockerTools.caCertificates
       pkgs.dockerTools.fakeNss
       pkgs.iana-etc
+      pkgs.gnupg
     ];
 
     fakeRootCommands = ''

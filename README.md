@@ -1,6 +1,10 @@
 # pdf-sign
 
+[![built with garnix](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fgarnix.io%2Fapi%2Fbadges%2F0x77dev%2Fpdf-sign%3Fbranch%3Dmain)](https://garnix.io/repo/0x77dev/pdf-sign) [![CI](https://github.com/0x77dev/pdf-sign/actions/workflows/ci.yml/badge.svg)](https://github.com/0x77dev/pdf-sign/actions/workflows/ci.yml)
+
 PDF signing utility written in Rust that supports both **OpenPGP (GPG)** and **Sigstore (keyless OIDC)** signatures, appending cryptographic signatures directly to PDFs, making it easy to sign and verify documents without heavyweight PDF signing stacks, making your PDFs authentic, tamper-proof, while being fully compatible with regular readers.
+
+[![Watch the demo on X](https://pbs.twimg.com/amplify_video_thumb/2000478980236013569/img/FpmQTXfyxCD5yxaW.jpg)](https://twitter.com/0x77dev/status/2000481268258205919)
 
 [![asciicast](https://asciinema.org/a/JXR1crpqtcbMT1DIhD3dzXFB9.svg)](https://asciinema.org/a/JXR1crpqtcbMT1DIhD3dzXFB9)
 
