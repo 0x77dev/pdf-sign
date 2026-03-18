@@ -47,7 +47,7 @@ jobs:
             accept-flake-config = true
 
       - name: Cachix
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -136,7 +136,7 @@ jobs:
             accept-flake-config = true
 
       - name: Cachix
-        uses: cachix/cachix-action@v16
+        uses: cachix/cachix-action@v17
         with:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
