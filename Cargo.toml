@@ -33,7 +33,7 @@ bilrost = "0.1014.1"
 bilrost-derive = "0.1014.1"
 
 # Hashing
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22.1"
 getrandom = "0.4"
 chrono = "0.4.44"
