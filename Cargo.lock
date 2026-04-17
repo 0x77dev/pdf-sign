@@ -249,9 +249,9 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bilrost"
-version = "0.1014.1"
+version = "0.1014.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be62a88fe2e8da9012cbf81085cc86f53ce9a8584507180e3eb9918a9b77b02f"
+checksum = "7dcaabc24217713f7e0975d5f1276293f89cf458d8c8f3d470f8f1b1a323a705"
 dependencies = [
  "autocfg",
  "bilrost-derive",
@@ -261,9 +261,9 @@ dependencies = [
 
 [[package]]
 name = "bilrost-derive"
-version = "0.1014.1"
+version = "0.1014.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a770fdbaa701326b4fe9400bb5dada1ec01a8b026f078154f010ffed544a5da1"
+checksum = "afe16e422c489419db85690b3e53864835963af62316f35b0e16ec914dbd30a1"
 dependencies = [
  "eyre",
  "itertools 0.14.0",
@@ -3030,7 +3030,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
  "heck",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -3049,7 +3049,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
