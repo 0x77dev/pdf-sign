@@ -152,7 +152,10 @@ pub fn load_cert(spec: &str) -> Result<Cert> {
   let matches = find_certs_in_keybox(&certs, spec);
 
   if matches.is_empty() {
-    tracing::debug!(spec = spec, "No matching cert in keybox, trying `gpg --export` fallback");
+    tracing::debug!(
+      spec = spec,
+      "No matching cert in keybox, trying `gpg --export` fallback"
+    );
 
     match Command::new("gpg").args(&["--export", "-a", spec]).output() {
       Ok(out) if out.status.success() && !out.stdout.is_empty() => {
@@ -168,7 +171,10 @@ pub fn load_cert(spec: &str) -> Result<Cert> {
         );
       }
       Ok(_) => {
-        tracing::debug!(spec = spec, "`gpg --export` had no output we fall through to the original error.");
+        tracing::debug!(
+          spec = spec,
+          "`gpg --export` had no output we fall through to the original error."
+        );
       }
       Err(e) => {
         tracing::debug!(error = %e, "Failed to run `gpg --export` fallback");
