@@ -155,10 +155,17 @@ pub fn load_cert(spec: &str) -> Result<Cert> {
     tracing::debug!(spec = spec, "No matching cert in keybox, trying `gpg --export` fallback");
 
     match Command::new("gpg").args(&["--export", "-a", spec]).output() {
-      Ok(out) if !out.stdout.is_empty() => {
+      Ok(out) if out.status.success() && !out.stdout.is_empty() => {
         tracing::debug!(size = out.stdout.len(), "gpg export returned data");
         return Cert::from_bytes(&out.stdout)
           .with_context(|| format!("Failed to parse certificate exported by gpg for '{}'", spec));
+      }
+      Ok(out) if !out.status.success() => {
+        tracing::debug!(
+          status = ?out.status.code(),
+          stderr = %String::from_utf8_lossy(&out.stderr),
+          "`gpg --export` failed"
+        );
       }
       Ok(_) => {
         tracing::debug!(spec = spec, "`gpg --export` had no output we fall through to the original error.");
