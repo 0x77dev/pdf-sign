@@ -2825,7 +2825,7 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "const-oid 0.9.6",
+ "const-oid 0.10.2",
  "openidconnect",
  "pdf-sign-core",
  "regex",

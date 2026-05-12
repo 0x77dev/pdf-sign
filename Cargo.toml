@@ -46,7 +46,7 @@ sequoia-gpg-agent = "0.6"
 sigstore = { version = "0.13", default-features = false }
 sigstore_protobuf_specs = "0.5"
 x509-cert = "0.2"
-const-oid = { version = "0.9", features = ["db"] }
+const-oid = { version = "0.10", features = ["db"] }
 openidconnect = "4.0.1"
 webbrowser = "1.2"
 regex = "1.12"
