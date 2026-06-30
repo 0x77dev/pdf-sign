@@ -150,6 +150,14 @@ jobs:
         run: |
           nix build .#image --out-link image
 
+      - name: Configure containers registry lookup
+        run: |
+          cat > "$RUNNER_TEMP/registries.conf" <<'EOF'
+          unqualified-search-registries = []
+          EOF
+          echo "CONTAINERS_REGISTRIES_CONF=$RUNNER_TEMP/registries.conf" >> "$GITHUB_ENV"
+          echo "CONTAINERS_REGISTRIES_CONF_OVERRIDE=" >> "$GITHUB_ENV"
+
       - name: Login to GHCR
         env:
           GHCR_USERNAME: ${{ github.actor }}
@@ -211,6 +219,14 @@ jobs:
         with:
           name: pdf-sign
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Configure containers registry lookup
+        run: |
+          cat > "$RUNNER_TEMP/registries.conf" <<'EOF'
+          unqualified-search-registries = []
+          EOF
+          echo "CONTAINERS_REGISTRIES_CONF=$RUNNER_TEMP/registries.conf" >> "$GITHUB_ENV"
+          echo "CONTAINERS_REGISTRIES_CONF_OVERRIDE=" >> "$GITHUB_ENV"
 
       - name: Login to GHCR
         env:
