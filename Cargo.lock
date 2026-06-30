@@ -254,22 +254,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1402c0425ccea96c6405d5351c4c8b2830a4aeb8e7464c69fc8f76ba28919933"
 dependencies = [
  "autocfg",
- "bilrost-derive 0.1015.0",
+ "bilrost-derive",
  "bytes",
  "thin-vec",
-]
-
-[[package]]
-name = "bilrost-derive"
-version = "0.1014.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afe16e422c489419db85690b3e53864835963af62316f35b0e16ec914dbd30a1"
-dependencies = [
- "eyre",
- "itertools 0.14.0",
- "proc-macro2",
- "quote",
- "syn 2.0.117",
 ]
 
 [[package]]
@@ -2792,7 +2779,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "bilrost",
- "bilrost-derive 0.1014.2",
+ "bilrost-derive",
  "serde",
  "sha2 0.11.0",
  "thiserror 2.0.18",
