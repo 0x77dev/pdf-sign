@@ -43,7 +43,7 @@ sequoia-openpgp = { version = "2.2", default-features = false, features = ["cryp
 sequoia-gpg-agent = "0.6"
 
 # Sigstore dependencies
-sigstore = { version = "0.13", default-features = false }
+sigstore = { version = "0.14", default-features = false }
 sigstore_protobuf_specs = "0.5"
 x509-cert = "0.2"
 const-oid = { version = "0.9", features = ["db"] }
