@@ -26,7 +26,7 @@ sigstore_protobuf_specs.workspace = true
 regex.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-sigstore = { workspace = true, features = ["bundle", "sign", "verify", "fulcio", "rekor", "oauth", "sigstore-trust-root", "rustls-tls", "rustls-tls-native-roots"] }
+sigstore = { workspace = true, features = ["bundle", "sign", "verify", "fulcio", "rekor", "oauth", "sigstore-trust-root", "rustls-tls"] }
 tokio = { workspace = true, features = ["full"] }
 webbrowser.workspace = true
 
