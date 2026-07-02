@@ -17,6 +17,13 @@
     {
       "matchUpdateTypes": ["major"],
       "automerge": false
+    },
+    {
+      "description": "Keep const-oid on 0.9 until the x509-cert/spki/sigstore stack uses const-oid 0.10-compatible ObjectIdentifier types.",
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["const-oid"],
+      "allowedVersions": "<0.10.0",
+      "automerge": false
     }
   ],
   "lockFileMaintenance": {
