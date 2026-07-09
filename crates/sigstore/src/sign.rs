@@ -182,9 +182,8 @@ fn extract_bundle_info(bundle: &sigstore::bundle::Bundle) -> Result<(String, Str
 
   // Extract SAN for identity
   let san_ext = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| {
       exts
         .iter()
@@ -213,9 +212,8 @@ fn extract_bundle_info(bundle: &sigstore::bundle::Bundle) -> Result<(String, Str
     const_oid::ObjectIdentifier::new("1.3.6.1.4.1.57264.1.1").expect("Invalid issuer OID");
 
   let issuer = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| exts.iter().find(|ext| ext.extn_id == issuer_oid))
     .map(|ext| String::from_utf8_lossy(ext.extn_value.as_bytes()).to_string())
     .unwrap_or_else(|| "unknown".to_string());

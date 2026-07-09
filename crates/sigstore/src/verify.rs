@@ -215,9 +215,8 @@ fn extract_identity_from_bundle(bundle: &sigstore::bundle::Bundle) -> Result<(St
 
   // Extract SAN for identity
   let san_ext = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| {
       exts
         .iter()
@@ -245,12 +244,11 @@ fn extract_identity_from_bundle(bundle: &sigstore::bundle::Bundle) -> Result<(St
     const_oid::ObjectIdentifier::new("1.3.6.1.4.1.57264.1.1").expect("Invalid issuer OID");
 
   let cert_issuer = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| exts.iter().find(|ext| ext.extn_id == issuer_oid))
     .and_then(|ext| {
-      let s = String::from_utf8(ext.extn_value.clone().into_bytes()).ok()?;
+      let s = String::from_utf8(ext.extn_value.as_bytes().to_vec()).ok()?;
       Some(
         s.trim_matches(|c: char| c.is_whitespace() || c == '\0')
           .to_string(),
@@ -291,9 +289,8 @@ fn extract_bundle_info(bundle: &sigstore::bundle::Bundle) -> Result<(String, Str
 
   // Extract SAN for identity
   let san_ext = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| {
       exts
         .iter()
@@ -321,11 +318,10 @@ fn extract_bundle_info(bundle: &sigstore::bundle::Bundle) -> Result<(String, Str
     const_oid::ObjectIdentifier::new("1.3.6.1.4.1.57264.1.1").expect("Invalid issuer OID");
 
   let cert_issuer = cert
-    .tbs_certificate
-    .extensions
-    .as_ref()
+    .tbs_certificate()
+    .extensions()
     .and_then(|exts| exts.iter().find(|ext| ext.extn_id == issuer_oid))
-    .and_then(|ext| String::from_utf8(ext.extn_value.clone().into_bytes()).ok())
+    .and_then(|ext| String::from_utf8(ext.extn_value.as_bytes().to_vec()).ok())
     .unwrap_or_else(|| "unknown".to_string());
 
   Ok((
