@@ -93,7 +93,7 @@ jobs:
           - name: macos-arm64
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: pdf-sign-${{ matrix.name }}
           path: dist
